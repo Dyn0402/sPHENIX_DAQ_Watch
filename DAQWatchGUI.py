@@ -146,30 +146,37 @@ class DAQWatchGUI:
         output_frame = ttk.Frame(form_button_status_frame)
         output_frame.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=10)
 
+        run_status_frame = ttk.Frame(output_frame)
+        run_status_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         # Date and time display
-        self.date_time_label = ttk.Label(output_frame, text="Last Check:")
+        self.date_time_label = ttk.Label(run_status_frame, text="Last Check:")
         self.date_time_label.grid(column=0, row=0, padx=10, pady=10, sticky=tk.W)
-        self.date_time = ttk.Label(output_frame, text=strftime("%m-%d %H:%M:%S", localtime()),
+        self.date_time = ttk.Label(run_status_frame, text=strftime("%m-%d %H:%M:%S", localtime()),
                                       font=('Helvetica', 14, 'bold'))
         self.date_time.grid(column=1, row=0, padx=10, pady=10)
 
         # Run num display
-        self.run_num_label = ttk.Label(output_frame, text="Run Number:")
+        self.run_num_label = ttk.Label(run_status_frame, text="Run Number:")
         self.run_num_label.grid(column=0, row=1, padx=10, pady=10, sticky=tk.W)
-        self.run_num = ttk.Label(output_frame, text="N/A", font=('Helvetica', 14, 'bold'))
+        self.run_num = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
         self.run_num.grid(column=1, row=1, padx=10, pady=10)
 
         # Run time display
-        self.run_time_label = ttk.Label(output_frame, text="Run Time:")
+        self.run_time_label = ttk.Label(run_status_frame, text="Run Time:")
         self.run_time_label.grid(column=0, row=2, padx=10, pady=10, sticky=tk.W)
-        self.run_time = ttk.Label(output_frame, text="N/A", font=('Helvetica', 14, 'bold'))
+        self.run_time = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
         self.run_time.grid(column=1, row=2, padx=10, pady=10)
 
         # Rate display
-        self.rate_display_label = ttk.Label(output_frame, text="Current Rate:")
-        self.rate_display_label.grid(column=0, row=4, padx=10, pady=10, sticky=tk.W)
-        self.rate_display = ttk.Label(output_frame, text="N/A", font=('Helvetica', 14, 'bold'))
-        self.rate_display.grid(column=1, row=4, padx=10, pady=10)
+        self.rate_display_label = ttk.Label(run_status_frame, text="Current Rate:")
+        self.rate_display_label.grid(column=0, row=3, padx=10, pady=10, sticky=tk.W)
+        self.rate_display = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
+        self.rate_display.grid(column=1, row=3, padx=10, pady=10)
+
+        # Status label
+        self.status_label = ttk.Label(output_frame, text="Status: Running", anchor='center',
+                                      font=('Helvetica', 12, 'italic'))
+        self.status_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         # Container frame for the graph
         graph_frame = ttk.Frame(self.root)
@@ -182,6 +189,7 @@ class DAQWatchGUI:
         self.time_data = []
         self.rate_data = []
         self.line, = self.ax.plot([], [], 'r-')
+        self.thresh_line = self.ax.axhline(self.rate_threshold / 1000, color='g', linestyle='--')
 
         # Format x-axis as time
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -204,7 +212,8 @@ class DAQWatchGUI:
         }
         with open('config.json', 'w') as f:
             json.dump(config, f, indent=4)
-        print("Configuration saved.")
+        # print("Configuration saved.")
+        self.status_label.config(text="Configuration saved", foreground='black')
 
     def load_config(self):
         try:
@@ -215,8 +224,10 @@ class DAQWatchGUI:
                 self.check_time_entry.insert(0, config.get('check_time', ''))
                 self.target_run_time_entry.insert(0, config.get('target_run_time', ''))
                 self.run_time_reminder_var.set(config.get('run_time_reminder', 0))
+            self.status_label.config(text="Configuration loaded", foreground='black')
         except FileNotFoundError:
-            print("No configuration file found.")
+            # print("No configuration file found.")
+            self.status_label.config(text="No configuration file found.", foreground='black')
 
     def update_param_display(self):
         self.rate_value.config(text=self.watcher.rate_threshold)
@@ -249,22 +260,23 @@ class DAQWatchGUI:
         self.run_time_reminder = self.run_time_reminder_var.get()
         self.watcher.run_time_reminder = self.run_time_reminder
 
-        print(f"Parameters set: Rate Threshold={self.rate_threshold}, Integration Time={self.integration_time}, "
-              f"Check Time={self.check_time}, Target Run Time={self.target_run_time}, "
-              f"Run Time Reminder={self.run_time_reminder}")
+        # print(f"Parameters set: Rate Threshold={self.rate_threshold}, Integration Time={self.integration_time}, "
+        #       f"Check Time={self.check_time}, Target Run Time={self.target_run_time}, "
+        #       f"Run Time Reminder={self.run_time_reminder}")
 
         self.update_param_display()
+        self.status_label.config(text="Parameters Set", foreground='black')
 
     def silence_click(self):
-        print("Silence button pressed.")
         self.silence = not self.silence
         if self.silence:
             self.silence_button.config(bg='red', text='Unsilence')
         else:
             self.silence_button.config(bg='#3c8dbc', text='Silence')
         self.watcher.silence = self.silence
+        self.status_label.config(text="Alarm silenced" if self.silence else "Alarm Unsilenced")
 
-    def update_gui(self, run_num, rate, run_time):
+    def update_gui(self, run_num, rate, run_time, rate_alert, run_time_alert):
         refresh_time = datetime.now()
         refresh_time_str = refresh_time.strftime("%m-%d %H:%M:%S")
         self.date_time.config(text=refresh_time_str)
@@ -287,20 +299,28 @@ class DAQWatchGUI:
             self.rate_display.config(text=f"{rate / 1000:.2f} kHz")
             self.time_data.append(refresh_time)
             self.rate_data.append(rate / 1000)
-            y_top = max(self.rate_data) * 1.1
-        # self.refresh_label.config(text=f"Last Refresh: {refresh_time_str}")
+            y_top = max(max(self.rate_data), self.rate_threshold / 1000) * 1.1
 
         # Update graph data
-
         self.time_data = self.time_data[-self.graph_points:]  # Keep only the last n data points
         self.rate_data = self.rate_data[-self.graph_points:]
 
         self.line.set_data(self.time_data, self.rate_data)
+        self.thresh_line.set_ydata([self.rate_threshold / 1000, self.rate_threshold / 1000])
         if y_top is not None and y_top > 0:
             self.ax.set_ylim(0, y_top)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
+
+        rate_alert_message, run_time_alert_message = "Low Rate!", "Target Run Time Reached"
+        if rate_alert:
+            self.status_label.config(text=rate_alert_message, foreground='red')
+        elif run_time_alert:
+            self.status_label.config(text=run_time_alert_message, foreground='green')
+        else:  # If status_label text is either of the alert messages, change it back to ""
+            if self.status_label.cget('text') in [rate_alert_message, run_time_alert_message]:
+                self.status_label.config(text="", foreground='black')
 
     def show_readme(self):
         # Create the pop-up window
@@ -373,41 +393,4 @@ This application monitors the DAQ rate from the Prometheus database via a Grafan
         # Add a close button
         close_button = Button(readme_window, text="Close", command=readme_window.destroy)
         close_button.pack(pady=10)
-
-    # def show_readme(self):
-    #     # Create the pop-up window
-    #     readme_window = Toplevel(self.root)
-    #     readme_window.title("Readme")
-    #
-    #     # Add a label with the readme text
-    #     readme_text = """This application monitors the DAQ rate from the Prometheus database via a Grafana proxy API call. It polls the database every 'check_time' seconds and retrieves the current run number and DAQ rate, averaged over the past 'integration_time' seconds. If the rate falls below the specified threshold, an alarm will sound. This is particularly helpful for quickly alerting the shift crew to seb hangs as well as beam aborts.
-    #
-    #     Parameters:
-    #     - Rate Threshold (Hz): An audible alarm will sound if the rate falls below this value.
-    #     - Integration Time (s): The time period over which the rate is averaged. Increase to reduce false alarms.
-    #     - Check Time (s): The interval between each database poll.
-    #     - Target Run Time (min): The targeted max time for each run. Only used if 'Run Time Reminder' is enabled.
-    #     - Run Time Reminder: Option to alert when the target run time is reached to remind the user to start a new run.
-    #
-    #     Buttons:
-    #     - Set: Apply the input parameters.
-    #     - Save Config: Save the current configuration to a file. These values will be loaded on next start of the GUI.
-    #     - Silence/Unsilence: Mute or unmute the alarm.
-    #
-    #     Status Parameters and Plot:
-    #     - Last Check: Displays the timestamp of the last time the database was polled. Should be current time.
-    #     - Run Number: Shows the current run number.
-    #     - Run Time: Indicates the elapsed time for the current run. Only starts counting once the GUI has been opened.
-    #     - Current Rate: Displays the current DAQ rate.
-    #     - Rate Plot: A graph showing the DAQ rate over time, updated with each check.
-    #
-    #     Currently only working on Linux systems with the 'aplay' command available.
-    #     For questions or issues, please contact Dylan Neff (dneff@ucla.edu)"""
-    #
-    #     readme_label = Label(readme_window, text=readme_text, justify='left', wraplength=600)
-    #     readme_label.pack(padx=10, pady=10)
-    #
-    #     # Add a close button
-    #     close_button = Button(readme_window, text="Close", command=readme_window.destroy)
-    #     close_button.pack(pady=10)
 

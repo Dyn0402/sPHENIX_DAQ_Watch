@@ -77,9 +77,10 @@ class DAQWatcher:
         while True:
             self.run_num = self.get_run_number()
             self.rate = self.get_rate()
+            rate_alert, run_time_alert = False, False
 
-            print(f'Run: {self.run_num}, Rate: {self.rate}, Silence: {self.silence}, run_time: {self.run_time}, '
-                  f'run_time_alert_counter: {run_time_alert_counter}')
+            # print(f'Run: {self.run_num}, Rate: {self.rate}, Silence: {self.silence}, run_time: {self.run_time}, '
+            #       f'run_time_alert_counter: {run_time_alert_counter}')
 
             if self.run_num is not None:
                 if self.run_num != self.last_run:
@@ -96,18 +97,20 @@ class DAQWatcher:
                 if self.rate is not None and self.run_num is not None:
                     if self.rate < self.rate_threshold and self.run_time > self.new_run_cushion:
                         print('Low rate')
+                        rate_alert = True
                         if not self.silence:
                             os.system(f'aplay {self.alert_sound_file}')
 
                 if self.target_run_time is not None and self.run_time > self.target_run_time * 60:
                     print('Target run time reached')
+                    run_time_alert = True
                     if not self.silence and run_time_alert_counter < 5:
                         os.system(f'aplay {self.run_end_sound_file}')
                         run_time_alert_counter += 1
 
             # Update the GUI with the latest data
             if self.update_callback:
-                self.update_callback(self.run_num, self.rate, self.run_time)
+                self.update_callback(self.run_num, self.rate, self.run_time, rate_alert, run_time_alert)
             sleep(self.check_time)  # Do this first so continues are safe
 
     @property
