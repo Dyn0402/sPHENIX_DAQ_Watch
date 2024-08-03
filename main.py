@@ -8,14 +8,22 @@ Created as sPHENIX_DAQ_Watch/main
 @author: Dylan Neff, dn277127
 """
 
+import sys
 import tkinter as tk
 
 from DAQWatchGUI import DAQWatchGUI
 
 
 def main():
+    local = False
+    if len(sys.argv) > 2:
+        print('Too many arguments.')
+        return
+    elif len(sys.argv) == 2:
+        if sys.argv[1].lower() == 'local' or sys.argv[1].lower() == 'l' or sys.argv[1] == 1:
+            local = True
     root = tk.Tk()
-    app = DAQWatchGUI(root)
+    app = DAQWatchGUI(root, local)
     root.mainloop()
     print('donzo')
 

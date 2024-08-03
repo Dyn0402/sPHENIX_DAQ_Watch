@@ -25,10 +25,14 @@ from DAQWatcher import DAQWatcher
 
 
 class DAQWatchGUI:
-    def __init__(self, root):
+    def __init__(self, root, local=False):
         self.root = root
         self.root.title("DAQ Watch")
         self.root.geometry('900x500')
+        if local:
+            self.grafana_url = 'http://localhost:7815'  # For running through forwarded ssh port
+        else:
+            self.grafana_url = 'http://insight.sphenix.bnl.gov:3000'  # For running through forwarded ssh port
 
         # Initialize parameter values
         self.rate_threshold = 100  # Hz Rate threshold to alert on
