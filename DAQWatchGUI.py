@@ -51,7 +51,9 @@ class DAQWatchGUI:
         # Load saved configuration
         self.load_config()
 
-        self.watcher = DAQWatcher(update_callback=self.update_gui, rate_threshold=self.rate_threshold)
+        self.watcher = DAQWatcher(update_callback=self.update_gui, rate_threshold=self.rate_threshold,
+                                  integration_time=self.integration_time, check_time=self.check_time,
+                                  target_run_time=self.target_run_time, grafana_url=self.grafana_url)
         self.watcher_thread = Thread(target=self.start_watcher)
         self.watcher_thread.daemon = True  # Daemonize thread so it stops with the GUI
         self.watcher_thread.name = 'Watcher Thread'
