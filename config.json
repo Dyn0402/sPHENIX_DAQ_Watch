@@ -1,0 +1,7 @@
+{
+    "rate_threshold": "250",
+    "integration_time": "10",
+    "check_time": "1",
+    "target_run_time": "60",
+    "run_time_reminder": 0
+}
