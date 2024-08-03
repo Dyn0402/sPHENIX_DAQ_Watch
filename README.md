@@ -48,7 +48,7 @@ To run the `sPHENIX_DAQ_Watch` application from the data monitor terminal, run:
 ~/anaconda3/bin/python ~/dylan/sPHENIX_DAQ_Watch/main.py
 ```
 
-With the proper packages it may also be possible to run from external Linux machines. First perform an ssh port forward as described [here](https://wiki.sphenix.bnl.gov/index.php/Operation_Analytics_Site_(Grafana)). Next, clone this repository and run it in local mode:
+With the proper packages it may also be possible to run from external Linux machines. First, establish an ssh port forward as described [here](https://wiki.sphenix.bnl.gov/index.php/Operation_Analytics_Site_(Grafana)). Next, clone this repository and run it in local mode:
 ```sh
 git clone https://github.com/Dyn0402/sPHENIX_DAQ_Watch.git
 cd sPHENIX_DAQ_WATCH
