@@ -47,11 +47,8 @@ class DAQWatcher:
         self.rate = None
         self.latest_daq_file_name = None
 
-    def get_rate_params(self):  # Unclear which query is best, seem to give same results
-        query = f'rate(sphenix_gtm_gl1_register{{register="23"}}[{self.integration_time}s])'
-        # query = f'rate(sphenix_gtm_gl1_json_dump_l1count{{}}[{self.integration_time}s])'
-        # query = (f'rate(sphenix_gtm_gl1_json_dump_l1count{{}}[{self.integration_time}s])/'
-        #          f'on() group_left() rate(sphenix_gtm_gl1_bco[{self.integration_time}s])*9.3831e6')
+    def get_rate_params(self):
+        query = f'sphenix_gtm_gl1_json_dump_l1count{{}}[{self.integration_time}s]'
         return {'query': query, 'instant': 'true'}
 
     def fetch_data(self, params):
@@ -85,7 +82,11 @@ class DAQWatcher:
         if data and 'data' in data and 'result' in data['data']:
             result = data['data']['result']
             if len(result) > 0:
-                return float(result[0]['value'][-1])
+                vals = result[0]['values']
+                first, last = vals[0], vals[-1]
+                time_diff = float(last[0]) - float(first[0])
+                event_diff = int(last[1]) - int(first[1])
+                return event_diff / time_diff
             else:
                 print(f'Error fetching rate data: {data}')
         else:

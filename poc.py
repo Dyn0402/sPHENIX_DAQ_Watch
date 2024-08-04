@@ -17,6 +17,7 @@ def main():
     # watch_daq()
     # print_exp_overview_dash()
     query_server_test()
+    # query_mvtx_server_test()
     print('donzo')
 
 
@@ -105,11 +106,44 @@ def query_server_test():
     # run_params = {'query': 'rate(sphenix_gtm_gl1_trigger_scalar{type=\"scaled\"}[10s])', 'instant': 'false'}
     # run_params = {'query': 'rate(sphenix_gtm_gl1_bco[10s])', 'instant': 'false'}
     # run_params = {'query': 'rate(sphenix_gtm_gl1_json_dump_l1count{}[10s])/on() group_left() rate(sphenix_gtm_gl1_bco[10s])*9.3831e6', 'instant': 'false'}
-    run_params = {'query': 'rate(sphenix_gtm_gl1_json_dump_l1count{}[10s])', 'instant': 'false'}
+    # run_params = {'query': 'rate(sphenix_gtm_gl1_json_dump_l1count{}[10s])', 'instant': 'false'}
+    run_params = {'query': 'sphenix_gtm_gl1_json_dump_l1count{}[60s]', 'instant': 'false'}
     endpoint_url = f'{grafana_url}/api/datasources/proxy/uid/{database_uid}/api/v1/query'
     response = requests.get(endpoint_url, params=run_params)
     print(response)
     print(response.json())
+    vals = response.json()['data']['result'][0]['values']
+    print(vals)
+    last_val = vals[-1]
+    first_val = vals[0]
+    print(f'Time diff: {last_val[0] - first_val[0]}, event diff: {int(last_val[1]) - int(first_val[1])}')
+
+
+def query_mvtx_server_test():
+    grafana_url = 'http://localhost:7815'
+    database_uid = 'iQo4u_fVk'
+
+    # SQL query extracted from the JSON
+    sql_query = '''
+    SELECT Value 
+    FROM mvtx.mvtxStatus 
+    ORDER BY Zeit DESC 
+    LIMIT 1
+    '''
+
+    run_params = {
+        'rawSql': sql_query,
+    }
+
+    endpoint_url = f'{grafana_url}/api/datasources/proxy/uid/{database_uid}/api/v1/query'
+
+    try:
+        response = requests.get(endpoint_url, params=run_params)
+        response.raise_for_status()  # Raises an HTTPError if the HTTP request returned an unsuccessful status code
+        print(response)
+        print(response.json())
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
 
 
 def poc_testing():
