@@ -22,8 +22,6 @@ class DAQWatcher:
         self.new_run_cushion = new_run_cushion
         self._integration_time = integration_time
         self.check_time = check_time
-        self.alert_sound_file = alert_sound_file
-        self.run_end_sound_file = run_end_sound_file
         self.grafana_url = grafana_url
         self.database_uid = database_uid
         self.run_params = {'query': 'sphenix_rcdaq_run{hostname=~"gl1daq"}', 'instant': 'true'}
@@ -32,6 +30,10 @@ class DAQWatcher:
         self.last_run = None
         self.run_start = None
         self.run_time = None
+
+        self.repo_dir = os.path.dirname(os.path.abspath(__file__))
+        self.alert_sound_file = os.path.join(self.repo_dir, alert_sound_file)
+        self.run_end_sound_file = os.path.join(self.repo_dir, run_end_sound_file)
 
         self.silence = False
         self.target_run_time = target_run_time  # minutes Targeted run time, alert when reached

@@ -8,14 +8,14 @@ Created as sPHENIX_DAQ_Watch/DAQWatchGUI
 @author: Dylan Neff, dn277127
 """
 
+import os
 import tkinter as tk
 from tkinter import ttk
-from tkinter import Toplevel, Label, Button, Scrollbar, Text
+from tkinter import Toplevel, Button, Scrollbar, Text
 from threading import Thread
 import json
-from time import time, strftime, localtime, gmtime
+from time import strftime, localtime, gmtime
 
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
@@ -40,6 +40,10 @@ class DAQWatchGUI:
         self.check_time = 1  # seconds Time between checks
         self.target_run_time = 60  # minutes Targeted run time, alert when reached
         self.run_time_reminder = False  # Alert when target run time is reached
+
+        self.repo_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_file_name = 'config.json'
+        self.config_path = os.path.join(self.repo_dir, self.config_file_name)
 
         self.graph_points = 100
 
@@ -210,14 +214,14 @@ class DAQWatchGUI:
             'target_run_time': self.target_run_time_entry.get(),
             'run_time_reminder': self.run_time_reminder_var.get()
         }
-        with open('config.json', 'w') as f:
+        with open(self.config_path, 'w') as f:
             json.dump(config, f, indent=4)
         # print("Configuration saved.")
         self.status_label.config(text="Configuration saved", foreground='black')
 
     def load_config(self):
         try:
-            with open('config.json', 'r') as f:
+            with open(self.config_path, 'r') as f:
                 config = json.load(f)
                 self.rate_entry.insert(0, config.get('rate_threshold', ''))
                 self.integration_time_entry.insert(0, config.get('integration_time', ''))
