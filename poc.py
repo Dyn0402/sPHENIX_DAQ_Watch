@@ -14,8 +14,9 @@ from time import sleep, time
 
 
 def main():
-    watch_daq()
+    # watch_daq()
     # print_exp_overview_dash()
+    query_server_test()
     print('donzo')
 
 
@@ -75,8 +76,6 @@ def watch_daq():
         sleep(1)
 
 
-
-
 def print_exp_overview_dash():
     url = 'http://localhost:7815/api/dashboards/uid/W4ivbg-Ik'
     res = requests.get(url).json()
@@ -92,6 +91,21 @@ def print_exp_overview_dash():
         if 'targets' in panel:
             print(panel['targets'])
         print()
+
+
+def query_server_test():
+    grafana_url = 'http://localhost:7815'
+    database_uid = 'EflW1u9nz'
+
+    # run_params = {'query': 'max by(run, filename, hostname) (sphenix_rcdaq_file_size_Byte{hostname=\"gl1daq\"})',
+    #               'instant': 'false'}
+    run_params = {'query': 'sphenix_rcdaq_file_size_Byte{hostname=~\"ebdc23\"}',
+                  'instant': 'true'}
+    # run_params = {'query': 'rate(sphenix_gtm_gl1_register{register="23"}[10s])', 'instant': 'false'}
+    endpoint_url = f'{grafana_url}/api/datasources/proxy/uid/{database_uid}/api/v1/query'
+    response = requests.get(endpoint_url, params=run_params)
+    print(response)
+    print(response.json())
 
 
 def poc_testing():

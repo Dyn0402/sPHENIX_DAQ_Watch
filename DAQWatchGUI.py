@@ -280,7 +280,7 @@ class DAQWatchGUI:
         self.watcher.silence = self.silence
         self.status_label.config(text="Alarm silenced" if self.silence else "Alarm Unsilenced")
 
-    def update_gui(self, run_num, rate, run_time, rate_alert, run_time_alert):
+    def update_gui(self, run_num, rate, run_time, rate_alert, run_time_alert, junk):
         refresh_time = datetime.now()
         refresh_time_str = refresh_time.strftime("%m-%d %H:%M:%S")
         self.date_time.config(text=refresh_time_str)
@@ -317,13 +317,15 @@ class DAQWatchGUI:
         self.ax.autoscale_view()
         self.canvas.draw()
 
-        rate_alert_message, run_time_alert_message = "Low Rate!", "Target Run Time Reached"
+        rate_alert_mesg, run_time_alert_mesg, junk_run_mesg = "Low Rate!", "Target Run Time Reached", "Junk Run"
         if rate_alert:
-            self.status_label.config(text=rate_alert_message, foreground='red')
+            self.status_label.config(text=rate_alert_mesg, foreground='red', font=('Helvetica', 14, 'bold'))
         elif run_time_alert:
-            self.status_label.config(text=run_time_alert_message, foreground='green')
+            self.status_label.config(text=run_time_alert_mesg, foreground='green', font=('Helvetica', 12, 'italic'))
+        elif junk:
+            self.status_label.config(text=junk_run_mesg, foreground='gray', font=('Helvetica', 12, 'italic'))
         else:  # If status_label text is either of the alert messages, change it back to ""
-            if self.status_label.cget('text') in [rate_alert_message, run_time_alert_message]:
+            if self.status_label.cget('text') in [rate_alert_mesg, run_time_alert_mesg, junk_run_mesg]:
                 self.status_label.config(text="", foreground='black')
 
     def show_readme(self):
