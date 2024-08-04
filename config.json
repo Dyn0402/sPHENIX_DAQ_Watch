@@ -1,7 +1,10 @@
 {
     "rate_threshold": "250",
-    "integration_time": "10",
+    "integration_time": "15",
     "check_time": "1",
     "target_run_time": "60",
+    "rate_alarm_cushion": "2",
+    "new_run_cushion": "30",
+    "graph_points": "500",
     "run_time_reminder": 0
 }

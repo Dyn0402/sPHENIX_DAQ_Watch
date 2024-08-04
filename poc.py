@@ -99,9 +99,13 @@ def query_server_test():
 
     # run_params = {'query': 'max by(run, filename, hostname) (sphenix_rcdaq_file_size_Byte{hostname=\"gl1daq\"})',
     #               'instant': 'false'}
-    run_params = {'query': 'sphenix_rcdaq_file_size_Byte{hostname=~\"ebdc23\"}',
-                  'instant': 'true'}
+    # run_params = {'query': 'sphenix_rcdaq_file_size_Byte{hostname=~\"ebdc23\"}',
+    #               'instant': 'true'}
     # run_params = {'query': 'rate(sphenix_gtm_gl1_register{register="23"}[10s])', 'instant': 'false'}
+    # run_params = {'query': 'rate(sphenix_gtm_gl1_trigger_scalar{type=\"scaled\"}[10s])', 'instant': 'false'}
+    # run_params = {'query': 'rate(sphenix_gtm_gl1_bco[10s])', 'instant': 'false'}
+    # run_params = {'query': 'rate(sphenix_gtm_gl1_json_dump_l1count{}[10s])/on() group_left() rate(sphenix_gtm_gl1_bco[10s])*9.3831e6', 'instant': 'false'}
+    run_params = {'query': 'rate(sphenix_gtm_gl1_json_dump_l1count{}[10s])', 'instant': 'false'}
     endpoint_url = f'{grafana_url}/api/datasources/proxy/uid/{database_uid}/api/v1/query'
     response = requests.get(endpoint_url, params=run_params)
     print(response)

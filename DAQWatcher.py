@@ -14,14 +14,15 @@ from time import sleep, time
 
 
 class DAQWatcher:
-    def __init__(self, update_callback=None, rate_threshold=100, new_run_cushion=10, integration_time=10, check_time=1,
-                 target_run_time=60, alert_sound_file='prompt.wav', run_end_sound_file='xylofon.wav',
+    def __init__(self, update_callback=None, rate_threshold=100, new_run_cushion=30, integration_time=10, check_time=1,
+                 target_run_time=60, rate_alarm_cushion=2, alert_sound_file='prompt.wav', run_end_sound_file='xylofon.wav',
                  grafana_url='http://localhost:7815', database_uid='EflW1u9nz'):
         self.update_callback = update_callback
         self.rate_threshold = rate_threshold
         self.new_run_cushion = new_run_cushion
         self._integration_time = integration_time
         self.check_time = check_time
+        self.rate_alarm_cushion = rate_alarm_cushion
         self.grafana_url = grafana_url
         self.database_uid = database_uid
         self.run_params = {'query': 'sphenix_rcdaq_run{hostname=~"gl1daq"}', 'instant': 'true'}
@@ -46,9 +47,12 @@ class DAQWatcher:
         self.rate = None
         self.latest_daq_file_name = None
 
-    def get_rate_params(self):
+    def get_rate_params(self):  # Unclear which query is best, seem to give same results
         query = f'rate(sphenix_gtm_gl1_register{{register="23"}}[{self.integration_time}s])'
-        return {'query': query, 'instant': 'false'}
+        # query = f'rate(sphenix_gtm_gl1_json_dump_l1count{{}}[{self.integration_time}s])'
+        # query = (f'rate(sphenix_gtm_gl1_json_dump_l1count{{}}[{self.integration_time}s])/'
+        #          f'on() group_left() rate(sphenix_gtm_gl1_bco[{self.integration_time}s])*9.3831e6')
+        return {'query': query, 'instant': 'true'}
 
     def fetch_data(self, params):
         try:
@@ -89,7 +93,7 @@ class DAQWatcher:
         return None
 
     def watch_daq(self):
-        run_time_alert_counter = 0
+        run_time_alert_counter, low_rate_counter = 0, 0
         while True:
             self.run_num = self.get_run_number()
             self.rate = self.get_rate()
@@ -100,6 +104,9 @@ class DAQWatcher:
 
             # print(f'Run: {self.run_num}, Rate: {self.rate}, Silence: {self.silence}, run_time: {self.run_time}, '
             #       f'run_time_alert_counter: {run_time_alert_counter}')
+
+            if self.rate is None or self.rate >= self.rate_threshold:
+                low_rate_counter = 0
 
             if self.run_num is not None:
                 if self.run_num != self.last_run:
@@ -117,7 +124,8 @@ class DAQWatcher:
                     if self.rate < self.rate_threshold and self.run_time > self.new_run_cushion:
                         print('Low rate')
                         rate_alert = True
-                        if not self.silence and not junk:
+                        low_rate_counter += 1
+                        if not self.silence and not junk and low_rate_counter >= self.rate_alarm_cushion:
                             os.system(f'aplay {self.alert_sound_file}')
 
                 if self.target_run_time is not None and self.run_time > self.target_run_time * 60:

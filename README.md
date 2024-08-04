@@ -20,6 +20,9 @@
 - **Integration Time (s):** The period over which the DAQ rate is averaged. Increasing this value can reduce false alarms.
 - **Check Time (s):** The interval between each database poll.
 - **Target Run Time (min):** The maximum duration for each run. This setting is used only if the 'Run Time Reminder' is enabled.
+- **Alarm Points Cushion:** The number of consecutive reads below the threshold before the alarm is triggered.
+- **New Run Cushion (s):** The time to wait after a new run starts before the alarm is triggered.
+- **Graph Points:** The number of points to display on the rate plot.
 - **Run Time Reminder:** Option to alert when the target run time is reached, reminding the user to start a new run.
 
 ## Buttons
@@ -27,6 +30,7 @@
 - **Set:** Apply the input parameters.
 - **Save Config:** Save the current configuration to a file. The values will be reloaded the next time the GUI starts.
 - **Silence/Unsilence:** Mute or unmute the alarm.
+- **Readme:** Open a window with application information.
 
 ## Status Parameters and Plot
 

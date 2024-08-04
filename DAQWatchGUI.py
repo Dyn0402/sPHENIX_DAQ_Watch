@@ -40,12 +40,14 @@ class DAQWatchGUI:
         self.check_time = 1  # seconds Time between checks
         self.target_run_time = 60  # minutes Targeted run time, alert when reached
         self.run_time_reminder = False  # Alert when target run time is reached
+        self.new_run_cushion = 30  # seconds to wait after a new run starts before alerting on low rate
+        self.rate_alarm_cushion = 2  # Require this many consecutive low rate checks before alerting
 
         self.repo_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file_name = 'config.json'
         self.config_path = os.path.join(self.repo_dir, self.config_file_name)
 
-        self.graph_points = 100
+        self.graph_points = 500
 
         self.silence = False
 
@@ -57,7 +59,8 @@ class DAQWatchGUI:
 
         self.watcher = DAQWatcher(update_callback=self.update_gui, rate_threshold=self.rate_threshold,
                                   integration_time=self.integration_time, check_time=self.check_time,
-                                  target_run_time=self.target_run_time, grafana_url=self.grafana_url)
+                                  target_run_time=self.target_run_time, grafana_url=self.grafana_url,
+                                  new_run_cushion=self.new_run_cushion, rate_alarm_cushion=self.rate_alarm_cushion)
         self.watcher_thread = Thread(target=self.start_watcher)
         self.watcher_thread.daemon = True  # Daemonize thread so it stops with the GUI
         self.watcher_thread.name = 'Watcher Thread'
@@ -85,35 +88,59 @@ class DAQWatchGUI:
 
         # Rate label and entry
         self.rate_label = ttk.Label(form_frame, text="Rate Threshold (Hz):")
-        self.rate_label.grid(column=0, row=0, padx=10, pady=10, sticky=tk.W)
+        self.rate_label.grid(column=0, row=0, padx=10, pady=2, sticky=tk.W)
         self.rate_value = ttk.Label(form_frame, width=5)
-        self.rate_value.grid(column=1, row=0, padx=10, pady=10)
+        self.rate_value.grid(column=1, row=0, padx=10, pady=2)
         self.rate_entry = ttk.Entry(form_frame, width=5)
-        self.rate_entry.grid(column=2, row=0, padx=10, pady=10)
+        self.rate_entry.grid(column=2, row=0, padx=10, pady=2)
 
         # Integration time label and entry
         self.integration_time_label = ttk.Label(form_frame, text="Integration Time (s):")
-        self.integration_time_label.grid(column=0, row=1, padx=10, pady=10, sticky=tk.W)
+        self.integration_time_label.grid(column=0, row=1, padx=10, pady=2, sticky=tk.W)
         self.intgration_time_value = ttk.Label(form_frame, width=5)
-        self.intgration_time_value.grid(column=1, row=1, padx=10, pady=10)
+        self.intgration_time_value.grid(column=1, row=1, padx=10, pady=2)
         self.integration_time_entry = ttk.Entry(form_frame, width=5)
-        self.integration_time_entry.grid(column=2, row=1, padx=10, pady=10)
+        self.integration_time_entry.grid(column=2, row=1, padx=10, pady=2)
 
         # Check time label and entry
         self.check_time_label = ttk.Label(form_frame, text="Check Time (s):")
-        self.check_time_label.grid(column=0, row=2, padx=10, pady=10, sticky=tk.W)
+        self.check_time_label.grid(column=0, row=2, padx=10, pady=2, sticky=tk.W)
         self.check_time_value = ttk.Label(form_frame, width=5)
-        self.check_time_value.grid(column=1, row=2, padx=10, pady=10)
+        self.check_time_value.grid(column=1, row=2, padx=10, pady=2)
         self.check_time_entry = ttk.Entry(form_frame, width=5)
-        self.check_time_entry.grid(column=2, row=2, padx=10, pady=10)
+        self.check_time_entry.grid(column=2, row=2, padx=10, pady=2)
 
         # Target Run Time label and entry
         self.target_run_time_label = ttk.Label(form_frame, text="Target Run Time (min):")
-        self.target_run_time_label.grid(column=0, row=3, padx=10, pady=10, sticky=tk.W)
+        self.target_run_time_label.grid(column=0, row=3, padx=10, pady=2, sticky=tk.W)
         self.target_run_time_value = ttk.Label(form_frame, width=5)
-        self.target_run_time_value.grid(column=1, row=3, padx=10, pady=10)
+        self.target_run_time_value.grid(column=1, row=3, padx=10, pady=2)
         self.target_run_time_entry = ttk.Entry(form_frame, width=5)
-        self.target_run_time_entry.grid(column=2, row=3, padx=10, pady=10)
+        self.target_run_time_entry.grid(column=2, row=3, padx=10, pady=2)
+
+        # Alarm points cushion label and entry
+        self.rate_alarm_cushion_label = ttk.Label(form_frame, text="Alarm Points Cushion:")
+        self.rate_alarm_cushion_label.grid(column=0, row=4, padx=10, pady=2, sticky=tk.W)
+        self.rate_alarm_cushion_value = ttk.Label(form_frame, width=5)
+        self.rate_alarm_cushion_value.grid(column=1, row=4, padx=10, pady=2)
+        self.rate_alarm_cushion_entry = ttk.Entry(form_frame, width=5)
+        self.rate_alarm_cushion_entry.grid(column=2, row=4, padx=10, pady=2)
+
+        # New run cushion label and entry
+        self.new_run_cushion_label = ttk.Label(form_frame, text="New Run Cushion (s):")
+        self.new_run_cushion_label.grid(column=0, row=5, padx=10, pady=2, sticky=tk.W)
+        self.new_run_cushion_value = ttk.Label(form_frame, width=5)
+        self.new_run_cushion_value.grid(column=1, row=5, padx=10, pady=2)
+        self.new_run_cushion_entry = ttk.Entry(form_frame, width=5)
+        self.new_run_cushion_entry.grid(column=2, row=5, padx=10, pady=2)
+
+        # Graph points label and entry
+        self.graph_points_label = ttk.Label(form_frame, text="Graph Points:")
+        self.graph_points_label.grid(column=0, row=6, padx=10, pady=2, sticky=tk.W)
+        self.graph_points_value = ttk.Label(form_frame, width=5)
+        self.graph_points_value.grid(column=1, row=6, padx=10, pady=2)
+        self.graph_points_entry = ttk.Entry(form_frame, width=5)
+        self.graph_points_entry.grid(column=2, row=6, padx=10, pady=2)
 
         # Button frame for buttons
         button_frame = ttk.Frame(form_button_status_frame)
@@ -122,30 +149,30 @@ class DAQWatchGUI:
 
         # Set button
         self.set_button = tk.Button(button_frame, text="Set Config", command=self.set_parameters, bg='gray', fg='white',
-                                    font=('Helvetica', 12, 'bold'), relief=tk.RAISED, bd=2, width=9)
-        self.set_button.pack(side=tk.TOP, pady=5)
+                                    font=('Helvetica', 13, 'bold'), relief=tk.RAISED, bd=2, width=9)
+        self.set_button.pack(side=tk.TOP, pady=7)
 
         # Save button
         self.save_button = tk.Button(button_frame, text="Save Config", command=self.save_config, bg='gray',
-                                     fg='white', font=('Helvetica', 12, 'bold'), relief=tk.RAISED, bd=2, width=9)
-        self.save_button.pack(side=tk.TOP, pady=5)
+                                     fg='white', font=('Helvetica', 13, 'bold'), relief=tk.RAISED, bd=2, width=9)
+        self.save_button.pack(side=tk.TOP, pady=7)
 
         # Silence button
         self.silence_button = tk.Button(button_frame, text="Silence", command=self.silence_click, bg='#3c8dbc', fg='white',
-                                        font=('Helvetica', 12, 'bold'), relief=tk.RAISED, bd=2, width=9)
-        self.silence_button.pack(side=tk.TOP, pady=5)
+                                        font=('Helvetica', 15, 'bold'), relief=tk.RAISED, bd=2, width=9)
+        self.silence_button.pack(side=tk.TOP, pady=7)
 
         # Checkbox for run time reminder
         self.run_time_reminder_var = tk.IntVar()
         self.run_time_reminder_var.set(self.run_time_reminder)
         self.run_time_reminder_check = ttk.Checkbutton(button_frame, text="Run Time Reminder",
                                                        variable=self.run_time_reminder_var)
-        self.run_time_reminder_check.pack(side=tk.TOP, pady=5)
+        self.run_time_reminder_check.pack(side=tk.TOP, pady=7)
 
         # Readme button, make smaller and less exciting than other buttons
         self.readme_button = tk.Button(button_frame, text="Readme", command=self.show_readme, bg='lightgrey',
                                        fg='black', font=('Helvetica', 10, 'bold'), relief=tk.RAISED, bd=2)
-        self.readme_button.pack(side=tk.TOP, pady=5)
+        self.readme_button.pack(side=tk.TOP, pady=7)
 
         output_frame = ttk.Frame(form_button_status_frame)
         output_frame.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=10)
@@ -212,6 +239,9 @@ class DAQWatchGUI:
             'integration_time': self.integration_time_entry.get(),
             'check_time': self.check_time_entry.get(),
             'target_run_time': self.target_run_time_entry.get(),
+            'rate_alarm_cushion': self.rate_alarm_cushion_entry.get(),
+            'new_run_cushion': self.new_run_cushion_entry.get(),
+            'graph_points': self.graph_points_entry.get(),
             'run_time_reminder': self.run_time_reminder_var.get()
         }
         with open(self.config_path, 'w') as f:
@@ -227,6 +257,9 @@ class DAQWatchGUI:
                 self.integration_time_entry.insert(0, config.get('integration_time', ''))
                 self.check_time_entry.insert(0, config.get('check_time', ''))
                 self.target_run_time_entry.insert(0, config.get('target_run_time', ''))
+                self.rate_alarm_cushion_entry.insert(0, config.get('rate_alarm_cushion', ''))
+                self.new_run_cushion_entry.insert(0, config.get('new_run_cushion', ''))
+                self.graph_points_entry.insert(0, config.get('graph_points', ''))
                 self.run_time_reminder_var.set(config.get('run_time_reminder', 0))
             self.status_label.config(text="Configuration loaded", foreground='black')
         except FileNotFoundError:
@@ -238,6 +271,9 @@ class DAQWatchGUI:
         self.intgration_time_value.config(text=self.watcher.integration_time)
         self.check_time_value.config(text=self.watcher.check_time)
         self.target_run_time_value.config(text=self.watcher.target_run_time)
+        self.rate_alarm_cushion_value.config(text=self.watcher.rate_alarm_cushion)
+        self.new_run_cushion_value.config(text=self.watcher.new_run_cushion)
+        self.graph_points_value.config(text=self.graph_points)
         self.run_time_reminder_var.set(self.run_time_reminder)
 
     def set_parameters(self):
@@ -260,6 +296,21 @@ class DAQWatchGUI:
         if set_target_run_time != '':
             self.target_run_time = float(set_target_run_time)
             self.watcher.target_run_time = self.target_run_time
+
+        set_rate_alarm_cushion = self.rate_alarm_cushion_entry.get()
+        if set_rate_alarm_cushion != '':
+            self.rate_alarm_cushion = int(set_rate_alarm_cushion)
+            self.watcher.rate_alarm_cushion = self.rate_alarm_cushion
+
+        set_new_run_cushion = self.new_run_cushion_entry.get()
+        if set_new_run_cushion != '':
+            self.new_run_cushion = float(set_new_run_cushion)
+            self.watcher.new_run_cushion = self.new_run_cushion
+
+        set_graph_points = self.graph_points_entry.get()
+        if set_graph_points != '':
+            self.graph_points = int(set_graph_points)
+            self.watcher.graph_points = self.graph_points
 
         self.run_time_reminder = self.run_time_reminder_var.get()
         self.watcher.run_time_reminder = self.run_time_reminder
@@ -318,12 +369,12 @@ class DAQWatchGUI:
         self.canvas.draw()
 
         rate_alert_mesg, run_time_alert_mesg, junk_run_mesg = "Low Rate!", "Target Run Time Reached", "Junk Run"
-        if rate_alert:
+        if junk:
+            self.status_label.config(text=junk_run_mesg, foreground='gray', font=('Helvetica', 12, 'italic'))
+        elif rate_alert:
             self.status_label.config(text=rate_alert_mesg, foreground='red', font=('Helvetica', 14, 'bold'))
         elif run_time_alert:
             self.status_label.config(text=run_time_alert_mesg, foreground='green', font=('Helvetica', 12, 'italic'))
-        elif junk:
-            self.status_label.config(text=junk_run_mesg, foreground='gray', font=('Helvetica', 12, 'italic'))
         else:  # If status_label text is either of the alert messages, change it back to ""
             if self.status_label.cget('text') in [rate_alert_mesg, run_time_alert_mesg, junk_run_mesg]:
                 self.status_label.config(text="", foreground='black')
@@ -361,6 +412,9 @@ This application monitors the DAQ rate from the Prometheus database via a Grafan
             "Integration Time (s): The time period over which the rate is averaged. Increase to reduce false alarms.",
             "Check Time (s): The interval between each database poll.",
             "Target Run Time (min): The targeted max time for each run. Only used if 'Run Time Reminder' is enabled.",
+            "Alarm Points Cushion: The number of consecutive low rate reads required before sounding the alarm.",
+            "New Run Cushion (s): The time to wait after a new run starts before alerting on low rate.",
+            "Graph Points: The number of points to display on the rate plot.",
             "Run Time Reminder: Option to alert when the target run time is reached to remind the user to start a new run."
         ]
 
@@ -372,7 +426,9 @@ This application monitors the DAQ rate from the Prometheus database via a Grafan
         buttons = [
             "Set: Apply the input parameters.",
             "Save Config: Save the current configuration to a file. These values will be loaded on next start of the GUI.",
-            "Silence/Unsilence: Mute or unmute the alarm."
+            "Silence/Unsilence: Mute or unmute the alarm.",
+            "Run Time Reminder: Alert when the target run time is reached.",
+            "Readme: Display this readme."
         ]
         for item in buttons:
             readme_text_widget.insert(tk.END, f"  • {item}\n", 'bullet')
