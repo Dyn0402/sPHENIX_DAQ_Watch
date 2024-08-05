@@ -103,6 +103,7 @@ class DAQWatcher:
             self.rate = self.get_rate()
             self.latest_daq_file_name = self.get_latest_daq_file_name()
             junk = 'junk' in self.latest_daq_file_name.lower() if self.latest_daq_file_name is not None else False
+            new_run = False
 
             rate_alert, run_time_alert = False, False
 
@@ -117,7 +118,8 @@ class DAQWatcher:
                     self.last_run = self.run_num
                     self.run_start = time()
                     run_time_alert_counter = 0
-                    print(f'New run: {self.run_num}')
+                    # print(f'New run: {self.run_num}')
+                    new_run = True
 
                 if self.run_start is None:
                     self.run_time = None
@@ -126,22 +128,22 @@ class DAQWatcher:
 
                 if self.rate is not None and self.run_num is not None:
                     if self.rate < self.rate_threshold and self.run_time > self.new_run_cushion:
-                        print('Low rate')
+                        # print('Low rate')
                         rate_alert = True
                         low_rate_counter += 1
                         if not self.silence and not junk and low_rate_counter >= self.rate_alarm_cushion:
-                            os.system(f'aplay {self.alert_sound_file}')
+                            os.system(f'aplay {self.alert_sound_file} > /dev/null 2>&1')
 
                 if self.target_run_time is not None and self.run_time > self.target_run_time * 60:
-                    print('Target run time reached')
+                    # print('Target run time reached')
                     run_time_alert = True
                     if not self.silence and run_time_alert_counter < 5 and not junk:
-                        os.system(f'aplay {self.run_end_sound_file}')
+                        os.system(f'aplay {self.run_end_sound_file} > /dev/null 2>&1')
                         run_time_alert_counter += 1
 
             # Update the GUI with the latest data
             if self.update_callback:
-                self.update_callback(self.run_num, self.rate, self.run_time, rate_alert, run_time_alert, junk)
+                self.update_callback(self.run_num, self.rate, self.run_time, rate_alert, run_time_alert, junk, new_run)
             sleep(self.check_time)  # Do this first so continues are safe
 
     @property

@@ -14,7 +14,7 @@ from tkinter import ttk
 from tkinter import Toplevel, Button, Scrollbar, Text
 from threading import Thread
 import json
-from time import strftime, localtime, gmtime
+from time import strftime, localtime, gmtime, sleep
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -65,6 +65,11 @@ class DAQWatchGUI:
         self.watcher_thread.daemon = True  # Daemonize thread so it stops with the GUI
         self.watcher_thread.name = 'Watcher Thread'
         self.watcher_thread.start()
+
+        self.time_since_thread = Thread(target=self.update_time_since)
+        self.time_since_thread.daemon = True
+        self.time_since_thread.name = 'Time Since Thread'
+        self.time_since_thread.start()
 
         self.set_parameters()
 
@@ -179,30 +184,37 @@ class DAQWatchGUI:
 
         run_status_frame = ttk.Frame(output_frame)
         run_status_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
         # Date and time display
         self.date_time_label = ttk.Label(run_status_frame, text="Last Check:")
-        self.date_time_label.grid(column=0, row=0, padx=10, pady=10, sticky=tk.W)
+        self.date_time_label.grid(column=0, row=0, padx=10, pady=9, sticky=tk.W)
         self.date_time = ttk.Label(run_status_frame, text=strftime("%m-%d %H:%M:%S", localtime()),
                                       font=('Helvetica', 14, 'bold'))
-        self.date_time.grid(column=1, row=0, padx=10, pady=10)
+        self.date_time.grid(column=1, row=0, padx=10, pady=9)
+
+        # Time since last check display
+        self.time_since_label = ttk.Label(run_status_frame, text="Last Checked:")
+        self.time_since_label.grid(column=0, row=1, padx=10, pady=9, sticky=tk.W)
+        self.time_since = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
+        self.time_since.grid(column=1, row=1, padx=10, pady=9)
 
         # Run num display
         self.run_num_label = ttk.Label(run_status_frame, text="Run Number:")
-        self.run_num_label.grid(column=0, row=1, padx=10, pady=10, sticky=tk.W)
+        self.run_num_label.grid(column=0, row=2, padx=10, pady=9, sticky=tk.W)
         self.run_num = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
-        self.run_num.grid(column=1, row=1, padx=10, pady=10)
+        self.run_num.grid(column=1, row=2, padx=10, pady=9)
 
         # Run time display
         self.run_time_label = ttk.Label(run_status_frame, text="Run Time:")
-        self.run_time_label.grid(column=0, row=2, padx=10, pady=10, sticky=tk.W)
+        self.run_time_label.grid(column=0, row=3, padx=10, pady=9, sticky=tk.W)
         self.run_time = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
-        self.run_time.grid(column=1, row=2, padx=10, pady=10)
+        self.run_time.grid(column=1, row=3, padx=10, pady=9)
 
         # Rate display
         self.rate_display_label = ttk.Label(run_status_frame, text="Current Rate:")
-        self.rate_display_label.grid(column=0, row=3, padx=10, pady=10, sticky=tk.W)
+        self.rate_display_label.grid(column=0, row=4, padx=10, pady=9, sticky=tk.W)
         self.rate_display = ttk.Label(run_status_frame, text="N/A", font=('Helvetica', 14, 'bold'))
-        self.rate_display.grid(column=1, row=3, padx=10, pady=10)
+        self.rate_display.grid(column=1, row=4, padx=10, pady=9)
 
         # Status label
         self.status_label = ttk.Label(output_frame, text="Status: Running", anchor='center',
@@ -276,6 +288,28 @@ class DAQWatchGUI:
         self.graph_points_value.config(text=self.graph_points)
         self.run_time_reminder_var.set(self.run_time_reminder)
 
+    def update_time_since(self):
+        while True:
+            # Get last check from self.date_time and convert to datetime object
+            last_check_str = self.date_time.cget('text')
+            last_check = datetime.strptime(last_check_str, "%m-%d %H:%M:%S")
+            # Set last_check to current year
+            last_check = last_check.replace(year=datetime.now().year)
+            time_since = datetime.now() - last_check
+
+            # Update time_since label in number of seconds since last check
+            num_seconds = time_since.total_seconds()
+            if num_seconds < 60:
+                time_since_str = f"{num_seconds:.0f} sec ago"
+            elif num_seconds < 3600:
+                time_since_str = f"{num_seconds / 60:.0f} min ago"
+            elif num_seconds < 86400:
+                time_since_str = f"{num_seconds / 3600:.0f} hr ago"
+            else:
+                time_since_str = f"{num_seconds / 86400:.0f} days ago"
+            self.time_since.config(text=time_since_str)
+            sleep(1)
+
     def set_parameters(self):
         set_rate_threshold = self.rate_entry.get()
         if set_rate_threshold != '':
@@ -331,7 +365,7 @@ class DAQWatchGUI:
         self.watcher.silence = self.silence
         self.status_label.config(text="Alarm silenced" if self.silence else "Alarm Unsilenced")
 
-    def update_gui(self, run_num, rate, run_time, rate_alert, run_time_alert, junk):
+    def update_gui(self, run_num, rate, run_time, rate_alert, run_time_alert, junk, new_run=False):
         refresh_time = datetime.now()
         refresh_time_str = refresh_time.strftime("%m-%d %H:%M:%S")
         self.date_time.config(text=refresh_time_str)
@@ -346,6 +380,9 @@ class DAQWatchGUI:
             self.run_num.config(text="Not Running")
         else:
             self.run_num.config(text=run_num)
+            if new_run:
+                self.status_label.config(text=f"New run {run_num} started", foreground='blue',
+                                         font=('Helvetica', 12, 'italic'))
 
         if rate is None:
             self.rate_display.config(text="Not Running")
