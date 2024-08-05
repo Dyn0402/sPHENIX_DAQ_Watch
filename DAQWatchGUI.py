@@ -51,6 +51,10 @@ class DAQWatchGUI:
 
         self.silence = False
 
+        self.previous_status = None
+        self.previous_status_counter = 0
+        self.status_refresh_count = 10
+
         # Create and place widgets
         self.create_widgets()
 
@@ -308,7 +312,7 @@ class DAQWatchGUI:
             else:
                 time_since_str = f"{num_seconds / 86400:.0f} days ago"
             self.time_since.config(text=time_since_str)
-            sleep(1)
+            sleep(10)
 
     def set_parameters(self):
         set_rate_threshold = self.rate_entry.get()
@@ -405,6 +409,12 @@ class DAQWatchGUI:
         self.ax.autoscale_view()
         self.canvas.draw()
 
+        if self.status_label.cget('text') != self.previous_status:
+            self.previous_status = self.status_label.cget('text')
+            self.previous_status_counter = 0
+        else:
+            self.previous_status_counter += 1
+
         rate_alert_mesg, run_time_alert_mesg, junk_run_mesg = "Low Rate!", "Target Run Time Reached", "Junk Run"
         if junk:
             self.status_label.config(text=junk_run_mesg, foreground='gray', font=('Helvetica', 12, 'italic'))
@@ -413,8 +423,13 @@ class DAQWatchGUI:
         elif run_time_alert:
             self.status_label.config(text=run_time_alert_mesg, foreground='green', font=('Helvetica', 12, 'italic'))
         else:  # If status_label text is either of the alert messages, change it back to ""
-            if self.status_label.cget('text') in [rate_alert_mesg, run_time_alert_mesg, junk_run_mesg]:
-                self.status_label.config(text="", foreground='black')
+            # if self.status_label.cget('text') in [rate_alert_mesg, run_time_alert_mesg, junk_run_mesg]:
+            #     self.status_label.config(text="", foreground='black')
+            if self.previous_status_counter > self.status_refresh_count:
+                if rate is not None and rate >= self.rate_threshold:
+                    self.status_label.config(text="Running", foreground='green', font=('Helvetica', 12, 'italic'))
+                else:
+                    self.status_label.config(text="Not Running", foreground='black', font=('Helvetica', 12, 'italic'))
 
     def show_readme(self):
         # Create the pop-up window
@@ -445,12 +460,12 @@ This application monitors the DAQ rate from the Prometheus database via a Grafan
 
         # Add bold and bullet text
         parameters = [
-            "Rate Threshold (Hz): An audible alarm will sound if the rate falls below this value.",
-            "Integration Time (s): The time period over which the rate is averaged. Increase to reduce false alarms.",
-            "Check Time (s): The interval between each database poll.",
+            "Rate Threshold (Hz): An audible alarm will sound if the rate falls below this value. Put slightly above zero to catch beam aborts (residual rate of around 100Hz for a few seconds).",
+            "Integration Time (s): The time period over which the rate is averaged. Increasing reduces false alarms but delays alarm time for true DAQ stalls.",
+            "Check Time (s): The interval between each database poll. Database updated every 2 seconds, so no need to poll more frequently than every 1 or 2 seconds. Times much longer than this will delay alarm in case of true DAQ stall.",
             "Target Run Time (min): The targeted max time for each run. Only used if 'Run Time Reminder' is enabled.",
-            "Alarm Points Cushion: The number of consecutive low rate reads required before sounding the alarm.",
-            "New Run Cushion (s): The time to wait after a new run starts before alerting on low rate.",
+            "Alarm Points Cushion: The number of consecutive low rate reads required before sounding the alarm. 1 will sound the alarm on the first low rate read. Probably keep at 1 if false positive rate low, else 2 should be ok. The larger this is the further delayed a true alarm will be.",
+            "New Run Cushion (s): The time to wait after a new run starts before alerting on low rate. ~10-30 seconds should be fine.",
             "Graph Points: The number of points to display on the rate plot.",
             "Run Time Reminder: Option to alert when the target run time is reached to remind the user to start a new run."
         ]
@@ -473,6 +488,7 @@ This application monitors the DAQ rate from the Prometheus database via a Grafan
         readme_text_widget.insert(tk.END, "\nStatus and Plot:\n", 'bold')
         status_parameters = [
             "Last Check: Displays the timestamp of the last time the database was polled. Should be current time.",
+            "Last Checked: Shows the time since the last check. Updates every 10 seconds.",
             "Run Number: Shows the current run number.",
             "Run Time: Indicates the elapsed time for the current run. Only starts counting once the GUI has been opened.",
             "Current Rate: Displays the current DAQ rate.",

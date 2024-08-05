@@ -35,6 +35,7 @@
 ## Status Parameters and Plot
 
 - **Last Check:** Displays the timestamp of the last database poll.
+- **Last Checked:** Shows the time since the last check.
 - **Run Number:** Shows the current run number.
 - **Run Time:** Indicates the elapsed time for the current run. This starts counting once the GUI is opened.
 - **Current Rate:** Displays the current DAQ rate.
