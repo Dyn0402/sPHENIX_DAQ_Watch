@@ -81,16 +81,19 @@ class DAQWatcher:
         data = self.fetch_data(self.rate_params)
         if data and 'data' in data and 'result' in data['data']:
             result = data['data']['result']
-            if len(result) > 1:
+            if len(result) > 0:
                 vals = result[0]['values']
-                first, last = vals[0], vals[-1]
-                time_diff = float(last[0]) - float(first[0])
-                event_diff = int(last[1]) - int(first[1])
-                return event_diff / time_diff
+                if len(vals) > 1:
+                    first, last = vals[0], vals[-1]
+                    time_diff = float(last[0]) - float(first[0])
+                    event_diff = int(last[1]) - int(first[1])
+                    return event_diff / time_diff
+                else:
+                    print(f'Error fetching rate data, not enough values: {data}')
             else:
-                print(f'Error fetching rate data: {data}')
+                print(f'Error fetching rate data, no results: {data}')
         else:
-            print(f'Error fetching rate data: {data}')
+            print(f'Error fetching rate data, no data or result: {data}')
         return None
 
     def watch_daq(self):
