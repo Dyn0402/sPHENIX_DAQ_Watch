@@ -81,7 +81,7 @@ class DAQWatcher:
         data = self.fetch_data(self.rate_params)
         if data and 'data' in data and 'result' in data['data']:
             result = data['data']['result']
-            if len(result) > 0:
+            if len(result) > 1:
                 vals = result[0]['values']
                 first, last = vals[0], vals[-1]
                 time_diff = float(last[0]) - float(first[0])
