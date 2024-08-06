@@ -31,6 +31,12 @@ class DAQWatcher:
             'instant': 'false'}
         self.rate_params = self.get_rate_params()
         self.endpoint_url = f'{self.grafana_url}/api/datasources/proxy/uid/{self.database_uid}/api/v1/query'
+
+        # self.frac_max_points = 0.8  # Demand at least this fraction of expected points be present for average
+        # self.database_refresh_period = 2  # seconds Time between database refreshes
+        self.required_points = 2
+        # self.calc_required_points()
+
         self.last_run = None
         self.run_start = None
         self.run_time = None
@@ -83,7 +89,7 @@ class DAQWatcher:
             result = data['data']['result']
             if len(result) > 0:
                 vals = result[0]['values']
-                if len(vals) > 1:
+                if len(vals) >= self.required_points:
                     first, last = vals[0], vals[-1]
                     time_diff = float(last[0]) - float(first[0])
                     event_diff = int(last[1]) - int(first[1])
@@ -146,6 +152,9 @@ class DAQWatcher:
                 self.update_callback(self.run_num, self.rate, self.run_time, rate_alert, run_time_alert, junk, new_run)
             sleep(self.check_time)  # Do this first so continues are safe
 
+    # def calc_required_points(self):
+    #     self.required_points = max(2, int(self.integration_time / self.database_refresh_period * self.frac_max_points))
+
     @property
     def integration_time(self):
         return self._integration_time
@@ -153,4 +162,5 @@ class DAQWatcher:
     @integration_time.setter
     def integration_time(self, value):
         self._integration_time = int(value)
+        # self.calc_required_points()
         self.rate_params = self.get_rate_params()

@@ -47,6 +47,7 @@ class DAQWatchGUI:
         self.config_file_name = 'config.json'
         self.config_path = os.path.join(self.repo_dir, self.config_file_name)
 
+        self.max_graph_points = 100000
         self.graph_points = 500
 
         self.silence = False
@@ -398,10 +399,10 @@ class DAQWatchGUI:
             y_top = max(max(self.rate_data), self.rate_threshold / 1000) * 1.1
 
         # Update graph data
-        self.time_data = self.time_data[-self.graph_points:]  # Keep only the last n data points
-        self.rate_data = self.rate_data[-self.graph_points:]
+        self.time_data = self.time_data[-self.max_graph_points:]  # Keep only the last n data points
+        self.rate_data = self.rate_data[-self.max_graph_points:]
 
-        self.line.set_data(self.time_data, self.rate_data)
+        self.line.set_data(self.time_data[-self.graph_points:], self.rate_data[-self.graph_points:])
         self.thresh_line.set_ydata([self.rate_threshold / 1000, self.rate_threshold / 1000])
         if y_top is not None and y_top > 0:
             self.ax.set_ylim(0, y_top)
@@ -425,7 +426,8 @@ class DAQWatchGUI:
         else:  # If status_label text is either of the alert messages, change it back to ""
             # if self.status_label.cget('text') in [rate_alert_mesg, run_time_alert_mesg, junk_run_mesg]:
             #     self.status_label.config(text="", foreground='black')
-            if self.previous_status_counter > self.status_refresh_count:
+            if (self.previous_status_counter > self.status_refresh_count or
+                    self.status_label.cget('text') == rate_alert_mesg):
                 if rate is not None and rate >= self.rate_threshold:
                     self.status_label.config(text="Running", foreground='green', font=('Helvetica', 12, 'italic'))
                 else:
