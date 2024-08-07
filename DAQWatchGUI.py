@@ -527,7 +527,8 @@ class DAQWatchGUI:
         button_font = font.Font(family="Helvetica", size=14, weight="bold")
 
         # Label explaining the purpose of the window
-        sound_control_label = ttk.Label(sound_control_window, text="Select sound files for alarm and run end.",
+        sound_control_label = ttk.Label(sound_control_window,
+                                        text="Select sound files for alarms. This hasn't really been tested...",
                                         font=title_font, background="#2E2E2E", foreground="#FFFFFF")
         sound_control_label.grid(row=0, column=0, columnspan=3, pady=20)
 
