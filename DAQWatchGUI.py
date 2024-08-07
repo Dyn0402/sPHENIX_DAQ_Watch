@@ -492,7 +492,7 @@ class DAQWatchGUI:
             self.status_label.config(text=rate_alert_mesg, foreground='red', font=('Helvetica', 14, 'bold'))
         elif mvtx_alert:
             self.status_label.config(text="Recover MVTX Mixed State Staves!", foreground='red',
-                                     font=('Helvetica', 13, 'bold'))
+                                     font=('Helvetica', 12, 'bold'))
         elif run_time_alert:
             self.status_label.config(text=run_time_alert_mesg, foreground='green', font=('Helvetica', 12, 'italic'))
         elif mvtx_new_mixed_staves > 0:
