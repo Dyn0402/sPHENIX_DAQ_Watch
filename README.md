@@ -9,10 +9,11 @@
 ## Features
 
 - Monitors DAQ rate and alerts shift crew when rate falls below set threshold.
+- Monitors the number of MVTX mixed staves and alerts the shift crew during run if more than 1 and at the end of the run if only 1.
 - Easy to silence/close if not wanted.
 - Most relevant parameters can be set by the user.
-- Parameter configurations can be saved and loaded when GUI reopned.
-- Can also make audible alert when run duration has reached a set time. Theoretically convenient when things are going very well.
+- Parameter configurations can be saved and loaded when GUI reopened.
+- Can also make audible alert when run duration has reached a set time. This would theoretically be convenient when things are going very well.
 
 ## Parameters
 
@@ -30,7 +31,10 @@
 - **Set:** Apply the input parameters.
 - **Save Config:** Save the current configuration to a file. The values will be reloaded the next time the GUI starts.
 - **Silence/Unsilence:** Mute or unmute the alarm.
+- **Run Time Reminder:** Toggle the run time reminder alarm.
+- **MVTX Staves Alarm:** Toggle the MVTX mixed staves alarm.
 - **Readme:** Open a window with application information.
+- **Sound Control:** Opens a window which allows the user to test and change the alarm sounds.
 
 ## Status Parameters and Plot
 
@@ -38,6 +42,7 @@
 - **Last Checked:** Shows the time since the last check.
 - **Run Number:** Shows the current run number.
 - **Run Time:** Indicates the elapsed time for the current run. This starts counting once the GUI is opened.
+- **Mixed Staves:** Displays the number of MVTX staves currently in a mixed state.
 - **Current Rate:** Displays the current DAQ rate.
 - **Rate Plot:** A graph showing the DAQ rate over time, updated with each check.
 

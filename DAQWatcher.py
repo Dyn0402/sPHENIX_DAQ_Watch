@@ -32,6 +32,12 @@ class DAQWatcher:
         self.rate_params = self.get_rate_params()
         self.endpoint_url = f'{self.grafana_url}/api/datasources/proxy/uid/{self.database_uid}/api/v1/query'
 
+        self.query_url = f'{self.grafana_url}/api/ds/query'
+        self.mvtx_mixed_staves_json = get_mvtx_mixed_staves_json()
+
+        self.mvtx_stave_threshold = 1
+        self.start_time_offset = 3  # seconds We get info about start time late, so try to adjust
+
         # self.frac_max_points = 0.8  # Demand at least this fraction of expected points be present for average
         # self.database_refresh_period = 2  # seconds Time between database refreshes
         self.required_points = 2
@@ -40,14 +46,18 @@ class DAQWatcher:
         self.last_run = None
         self.run_start = None
         self.run_time = None
+        self.mvtx_mixed_staves = None
 
         self.repo_dir = os.path.dirname(os.path.abspath(__file__))
         self.alert_sound_file = os.path.join(self.repo_dir, alert_sound_file)
         self.run_end_sound_file = os.path.join(self.repo_dir, run_end_sound_file)
+        self.run_start_sound_file = os.path.join(self.repo_dir, run_end_sound_file)
+        self.mvtx_alert_sound_file = os.path.join(self.repo_dir, alert_sound_file)
 
         self.silence = False
         self.target_run_time = target_run_time  # minutes Targeted run time, alert when reached
-        self.run_time_reminder = None
+        self.run_time_reminder = False
+        self.mvtx_alerts = True
 
         self.run_num = None
         self.rate = None
@@ -102,16 +112,34 @@ class DAQWatcher:
             print(f'Error fetching rate data, no data or result: {data}')
         return None
 
+    def get_mvtx_mixed_staves(self):
+        try:
+            response = requests.post(self.query_url, json=self.mvtx_mixed_staves_json)
+            data = response.json()
+            if ('results' in data and len(data['results']) > 0 and 'MVTX Mixed Staves' in data['results'] and
+                    len(data['results']['MVTX Mixed Staves']['frames']) > 0):
+                return data['results']['MVTX Mixed Staves']['frames'][0]['data']['values'][0][0]
+            else:
+                print(f'Error fetching MVTX mixed staves: {data}')
+        except Exception as e:
+            print(f'Error fetching MVTX mixed staves: {e}')
+        return None
+
     def watch_daq(self):
-        run_time_alert_counter, low_rate_counter = 0, 0
+        run_time_alert_counter, low_rate_counter, no_run_num_count = 0, 0, 0
         while True:
             self.run_num = self.get_run_number()
             self.rate = self.get_rate()
             self.latest_daq_file_name = self.get_latest_daq_file_name()
+            mvtx_mixed_staves_read = self.get_mvtx_mixed_staves()
+            new_mixed_staves = mvtx_mixed_staves_read - self.mvtx_mixed_staves \
+                if self.mvtx_mixed_staves is not None and mvtx_mixed_staves_read is not None else 0
+            self.mvtx_mixed_staves = mvtx_mixed_staves_read
+
             junk = 'junk' in self.latest_daq_file_name.lower() if self.latest_daq_file_name is not None else False
             new_run = False
 
-            rate_alert, run_time_alert = False, False
+            rate_alert, run_time_alert, mvtx_alert = False, False, False
 
             # print(f'Run: {self.run_num}, Rate: {self.rate}, Silence: {self.silence}, run_time: {self.run_time}, '
             #       f'run_time_alert_counter: {run_time_alert_counter}')
@@ -120,9 +148,10 @@ class DAQWatcher:
                 low_rate_counter = 0
 
             if self.run_num is not None:
+                no_run_num_count = 0
                 if self.run_num != self.last_run:
                     self.last_run = self.run_num
-                    self.run_start = time()
+                    self.run_start = time() - self.start_time_offset  # Set run start time. A bit delayed so adjust.
                     run_time_alert_counter = 0
                     # print(f'New run: {self.run_num}')
                     new_run = True
@@ -143,13 +172,29 @@ class DAQWatcher:
                 if self.target_run_time is not None and self.run_time > self.target_run_time * 60:
                     # print('Target run time reached')
                     run_time_alert = True
-                    if not self.silence and run_time_alert_counter < 5 and not junk:
+                    if not self.silence and run_time_alert_counter < 3 and not junk and self.run_time_reminder:
                         os.system(f'aplay {self.run_end_sound_file} > /dev/null 2>&1')
                         run_time_alert_counter += 1
 
+                if self.mvtx_mixed_staves is not None and self.mvtx_mixed_staves > self.mvtx_stave_threshold:
+                    mvtx_alert = True
+                    if not self.silence and not junk and self.mvtx_alerts:
+                        os.system(f'aplay {self.mvtx_alert_sound_file} > /dev/null 2>&1')
+
+                if new_run:
+                    if not self.silence and not junk:
+                        os.system(f'aplay {self.run_start_sound_file} > /dev/null 2>&1')
+            else:
+                no_run_num_count += 1
+                if no_run_num_count == 4:
+                    if self.mvtx_mixed_staves > 0 and not self.silence and self.mvtx_alerts:
+                        os.system(f'aplay {self.mvtx_alert_sound_file} > /dev/null 2>&1')
+                        mvtx_alert = True
+
             # Update the GUI with the latest data
             if self.update_callback:
-                self.update_callback(self.run_num, self.rate, self.run_time, rate_alert, run_time_alert, junk, new_run)
+                self.update_callback(self.run_num, self.rate, self.run_time, self.mvtx_mixed_staves, new_mixed_staves,
+                                     rate_alert, run_time_alert, mvtx_alert, junk, new_run)
             sleep(self.check_time)  # Do this first so continues are safe
 
     # def calc_required_points(self):
@@ -164,3 +209,20 @@ class DAQWatcher:
         self._integration_time = int(value)
         # self.calc_required_points()
         self.rate_params = self.get_rate_params()
+
+
+def get_mvtx_mixed_staves_json():
+    payload = {
+        "queries": [
+            {
+                "refId": "MVTX Mixed Staves",
+                "datasource": {
+                    "type": "mysql",
+                    "uid": "iQo4u_fVk"
+                },
+                "rawSql": 'SELECT SUM(tt.Wert) as "MVTX Mixed Staves" FROM ( SELECT t.Wert FROM ( SELECT * FROM MixedStaveCount ORDER BY Zeit DESC LIMIT 1000 ) AS t GROUP BY t.DPE) AS tt;',
+                "format": "table",
+            }
+        ],
+    }
+    return payload

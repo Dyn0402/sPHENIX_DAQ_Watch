@@ -10,14 +10,17 @@ Created as sPHENIX_DAQ_Watch/poc
 
 import os
 import requests
+import json
 from time import sleep, time
 
 
 def main():
     # watch_daq()
     # print_exp_overview_dash()
-    query_server_test()
+    # query_server_test()
     # query_mvtx_server_test()
+    # query_mvtx_test2()
+    mvtx_query()
     print('donzo')
 
 
@@ -145,6 +148,76 @@ def query_mvtx_server_test():
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
 
+
+def query_mvtx_test2():
+    # URL of the Grafana API endpoint
+    grafana_url = 'http://localhost:7815'
+    database_uid = 'iQo4u_fVk'
+
+    # Headers for the request
+    # headers = {
+    #     'Content-Type': 'application/json',
+    # }
+
+    # JSON payload to list tables in the database
+    # payload = {
+    #     "targets": [
+    #         {
+    #             "datasource": {
+    #                 "type": "mysql",
+    #                 "uid": "iQo4u_fVk"
+    #             },
+    #             "format": "table",
+    #             "rawQuery": True,
+    #             "rawSql": "SHOW TABLES;",
+    #             "refId": "A"
+    #         }
+    #     ]
+    # }
+
+    params = {"queries": [{"refId": "A", "datasource": {"type": "mysql", "uid": "iQo4u_fVk"},
+                           "rawSql": "SELECT 48 - SUM(tt.Wert)  as \"MVTX Mixed Staves\" FROM ( SELECT t.Wert FROM ( SELECT * FROM MixedStaveCount ORDER BY Zeit DESC LIMIT 1000 ) AS t GROUP BY t.DPE) AS tt;",
+                           "format": "table", "datasourceId": 8, "intervalMs": 60000, "maxDataPoints": 151}],
+              "from": "1723037161520", "to": "1723040761520"}
+
+    endpoint_url = f'{grafana_url}/api/ds/query?ds_type=mysql&requestId=Q1520'
+    # endpoint_url = f'{grafana_url}/api/datasources/proxy/uid/{database_uid}'
+
+    # Send the POST request
+    response = requests.post(endpoint_url, params=params)
+
+    # Check the response status code
+    if response.status_code == 200:
+        # Print the result of the query
+        print("Query successful!")
+        print(response.json())
+    else:
+        print(f"Query failed with status code {response.status_code}")
+        print(response.text)
+
+
+def mvtx_query():
+    grafana_url = 'http://localhost:7815'
+    url = f'{grafana_url}/api/ds/query'
+
+    data = {
+        "queries": [
+            {
+                "refId": "MVTX Mixed Staves",
+                "datasource": {
+                    "type": "mysql",
+                    "uid": "iQo4u_fVk"
+                },
+                "rawSql": 'SELECT 48 - SUM(tt.Wert) as "MVTX Mixed Staves" FROM ( SELECT t.Wert FROM ( SELECT * FROM MixedStaveCount ORDER BY Zeit DESC LIMIT 1000 ) AS t GROUP BY t.DPE) AS tt;',
+                "format": "table",
+            }
+        ],
+    }
+
+    response = requests.post(url, json=data)
+
+    print(response.json())
+    print(response.json()['results']['MVTX Mixed Staves']['frames'][0]['data']['values'][0][0])
 
 def poc_testing():
     # url = 'http://localhost:7815/d/W4ivbg-Ik/experiment-overview?orgId=1&refresh=5s'
@@ -279,4 +352,3 @@ def query_prometheus(prometheus_url, query):
 
 if __name__ == '__main__':
     main()
-

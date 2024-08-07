@@ -5,6 +5,11 @@
     "target_run_time": "60",
     "rate_alarm_cushion": "2",
     "new_run_cushion": "20",
-    "graph_points": "500",
-    "run_time_reminder": 1
+    "graph_points": "2500",
+    "run_time_reminder": 1,
+    "mvtx_staves_alarm": 1,
+    "alarm_sound_file": null,
+    "run_end_reminder_sound_file": null,
+    "run_start_sound_file": null,
+    "mvtx_staves_alarm_sound_file": null
 }
