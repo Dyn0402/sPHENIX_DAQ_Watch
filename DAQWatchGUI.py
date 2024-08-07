@@ -442,13 +442,13 @@ class DAQWatchGUI:
         else:
             self.mvtx_mixed_staves.config(text=mvtx_mixed_staves)
             if mvtx_mixed_staves == 0:
-                self.mvtx_mixed_staves.config(foreground='green')
+                self.mvtx_mixed_staves.config(foreground='green', font=('Helvetica', 14, 'bold'))
             elif mvtx_mixed_staves == 1:
-                self.mvtx_mixed_staves.config(foreground='#FF8C00')
+                self.mvtx_mixed_staves.config(foreground='#a0a500', font=('Helvetica', 18, 'bold'))
             elif mvtx_mixed_staves > 1:
-                self.mvtx_mixed_staves.config(foreground='red')
+                self.mvtx_mixed_staves.config(foreground='red', font=('Helvetica', 18, 'bold'))
             else:
-                self.mvtx_mixed_staves.config(foreground='black')
+                self.mvtx_mixed_staves.config(foreground='black', font=('Helvetica', 14, 'bold'))
 
         if run_num is None:
             self.run_num.config(text="Not Running")
