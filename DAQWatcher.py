@@ -30,6 +30,9 @@ class DAQWatcher:
             'query': 'max by(run, filename, hostname) (sphenix_rcdaq_file_size_Byte{hostname=\"gl1daq\"})',
             'instant': 'false'}
         self.rate_params = self.get_rate_params()
+        self.mvtx_om_memory_params = {
+            'query': 'sphenix_rcdaq_root_exe_memory_rss_B{hostname=~"mvtx0|mvtx1|mvtx2|mvtx3|mvtx4|mvtx5"}',
+            'instant': 'true'}
         self.endpoint_url = f'{self.grafana_url}/api/datasources/proxy/uid/{self.database_uid}/api/v1/query'
 
         self.query_url = f'{self.grafana_url}/api/ds/query'
@@ -47,6 +50,7 @@ class DAQWatcher:
         self.run_start = None
         self.run_time = None
         self.mvtx_mixed_staves = None
+        self.mvtx_server_memory = {}
 
         self.repo_dir = os.path.dirname(os.path.abspath(__file__))
         self.alert_sound_file = os.path.join(self.repo_dir, alert_sound_file)
@@ -85,10 +89,15 @@ class DAQWatcher:
 
     def get_latest_daq_file_name(self):
         data = self.fetch_data(self.daq_file_params)
+        print(f'Daq file params: {self.daq_file_params}')
         if data and 'data' in data and 'result' in data['data']:
+            print(data)
             result = data['data']['result']
-            if len(result) > 0:
+            if len(result) > 0 and 'metric' in result[0] and 'filename' in result[0]['metric']:
                 return result[0]['metric']['filename']
+            else:
+                # print(f'Error fetching DAQ file name, no filename in result: {data}')  # If no logging no file name
+                return None
         else:
             print(f'Error fetching DAQ file data: {data}')
         return None
@@ -124,6 +133,15 @@ class DAQWatcher:
         except Exception as e:
             print(f'Error fetching MVTX mixed staves: {e}')
         return None
+
+    def update_mvtx_om_memory(self):
+        data = self.fetch_data(self.mvtx_om_memory_params)
+        if data and 'data' in data and 'result' in data['data']:
+            result = data['data']['result']
+            for server_result in result:
+                server_name = server_result['metric']['hostname']
+                timestamp, memory_usage = server_result['value']
+                self.mvtx_server_memory[server_name] = int(memory_usage)
 
     def watch_daq(self):
         run_time_alert_counter, low_rate_counter, no_run_num_count = 0, 0, 0
