@@ -89,9 +89,7 @@ class DAQWatcher:
 
     def get_latest_daq_file_name(self):
         data = self.fetch_data(self.daq_file_params)
-        print(f'Daq file params: {self.daq_file_params}')
         if data and 'data' in data and 'result' in data['data']:
-            print(data)
             result = data['data']['result']
             if len(result) > 0 and 'metric' in result[0] and 'filename' in result[0]['metric']:
                 return result[0]['metric']['filename']
